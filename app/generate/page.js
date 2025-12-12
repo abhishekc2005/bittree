@@ -1,22 +1,34 @@
 // app/generate/page.js
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { useSearchParams } from "next/navigation"
 
-// Prevent build-time prerender issues (optional but safe)
+// prevent build-time prerender issues
 export const dynamic = "force-dynamic"
 
 export default function Generate() {
-  const searchParams = useSearchParams()
-
+  // We'll not use next/navigation's useSearchParams here to avoid build-time hook errors.
+  // Instead read from window.location.search in a useEffect (client-only).
   const [links, setLinks] = useState([{ link: "", linktext: "" }])
-  const [handle, sethandle] = useState(searchParams?.get("handle") || "")
+  const [handle, sethandle] = useState("")
   const [pic, setpic] = useState("")
   const [desc, setdesc] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search)
+        const h = params.get("handle")
+        if (h) sethandle(h)
+      }
+    } catch (err) {
+      // silent
+      console.warn("Could not read search params:", err)
+    }
+  }, [])
 
   const handleChange = (index, link, linktext) => {
     setLinks((initialLinks) => {
@@ -59,7 +71,7 @@ export default function Generate() {
         redirect: "follow",
       }
 
-      // IMPORTANT: use relative path so it works on Vercel
+      // Use relative API path for Vercel
       const r = await fetch("/api/add", requestOptions)
       const result = await r.json()
 
